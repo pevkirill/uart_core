@@ -1,9 +1,8 @@
 module uart_txd 
 #(
-	 parameter 	clock_frequency = 100_000_000,
-	 parameter	baud_rate = 115_200,
-	 parameter	div = clock_frequency/baud_rate,
-	 parameter  div_half = div/2
+	 parameter 	 clock_frequency = 100_000_000,
+	 parameter	 baud_rate = 115_200,
+	 localparam	 div = clock_frequency/baud_rate
 )
 (
 input 		clk, 	
@@ -23,16 +22,16 @@ output 		rts
  
  always @(posedge clk or negedge rst_n)			
 begin
-	if (~rst_n) 						    shift_data <= 9'b1111_11111;
+	if (~rst_n) 						        shift_data <= 9'b1111_11111;
 	else if (ready && w_ena) 				shift_data <= {1'b0, d}; 
-	else if(count_baund == div)      		shift_data <= {shift_data[7:0], 1'b1};	
+	else if(count_baund == div)     shift_data <= {shift_data[7:0], 1'b1};	
 end
 
  always @(posedge clk or negedge rst_n)
 begin
  	if (~rst_n || count_baund == div)   count_baund <= 9'h0;
- 	else if (ready && w_ena) 			count_baund <= 9'h0;
-	else          						count_baund <= count_baund + 1'b1;
+ 	else if (ready && w_ena) 			      count_baund <= 9'h0;
+	else          						          count_baund <= count_baund + 1'b1;
 end
 
 always @(posedge clk or negedge rst_n)
@@ -43,19 +42,19 @@ end
 
  always @(posedge clk or negedge rst_n)
  begin 
- 	if      (~rst_n) 						count_bit <= 4'd10;
-  	else if (ready && w_ena) 				count_bit <= 4'd0;
-  	else if (count_bit == 4'd10) 			count_bit <= count_bit;
+ 	if      (~rst_n) 						          count_bit <= 4'd10;
+  	else if (ready && w_ena) 				    count_bit <= 4'd0;
+  	else if (count_bit == 4'd10) 		  	count_bit <= count_bit;
   	else if (count_baund == div) 		    count_bit <= count_bit + 1'b1;
-  	else 									count_bit <= count_bit;	
+  	else 									              count_bit <= count_bit;	
 end
 
 always @(posedge clk or negedge rst_n)
 begin
-  	if (~rst_n) 					 ready <= 1'b0;
-  	else if (w_ena) 				 ready <= 1'b0;
+  	if (~rst_n) 					           ready <= 1'b0;
+  	else if (w_ena) 				         ready <= 1'b0;
   	else if (count_bit == 4'd10)     ready <= 1'b1;
-  	else							 ready <= ready;
+  	else							               ready <= ready;
 end
 
 

@@ -8,70 +8,63 @@ module testbench;
  logic        write;
  logic        read;
 
-parameter xtal_CLK = 100_000_000,
-			  baud = 115_200,
-	 halfperiod_50 = 25/2;	// 50 mHz
+parameter    xtal_CLK = 100_000_000,
+			     baud = 115_200;
+localparam halfperiod = 1_000_000_000/xtal_CLK/2;
 
 /*------------------------------------------------------------------------------
  --  generator clock
  ------------------------------------------------------------------------------*/ 
 initial begin
 	clk_i = 1'b0;
-	forever #(halfperiod_50) clk_i=~clk_i;
+	forever #(halfperiod) clk_i=~clk_i;
 end
 
 initial begin 
     rst_n  = 1'b0;
-    addres = 4'h0;
     write  = 1'b0;
     read   = 1'b0;
     data_i = 8'h0;
-    $display("running testbench");
+$display("Running testbench. Testbench is works on frequency = ", xtal_CLK, " MHz");
 @(posedge clk_i);
     rst_n = 1;
-@(ready);
-    addres = 4'd1;
+@(posedge clk_i);
     write  = 1'b1;
-    read   = 1'b0;
     data_i = 8'h13;
+    addres = 4'h2;
 @(posedge clk_i);
-@(posedge clk_i);
-@(posedge clk_i);
-@(posedge clk_i);
-@(ready);
-    addres = 4'd2;
     write  = 1'b1;
-    read   = 1'b0;
-    data_i = 8'h19;
+    data_i = 8'h63;
+    addres = 4'h0;///
 @(posedge clk_i);
-@(posedge clk_i);
-@(posedge clk_i);
-@(posedge clk_i);
-@(ready);
-    addres = 4'd3;
     write  = 1'b1;
-    read   = 1'b0;
-    data_i = 8'h21;
-@(ready);
-write  = 1'b0;
+    data_i = 8'h93;
+    addres = 4'h2;
 @(posedge clk_i);
+    write  = 1'b1;
+    data_i = 8'h17;
+    addres = 4'h0;
 @(posedge clk_i);
+    write  = 1'b1;
+    data_i = 8'h97;
+    addres = 4'h2;
 @(posedge clk_i);
 
-   #500000 $display("end");
+   #500000 $display("stop testbench");
    $stop;
 end
 
-uart_core uart_core_inst
+uart_core #(.CLK_FREQ  (xtal_CLK),
+            .BAUD_RATE (baud   ))
+                     uart_core_inst
 (
-    .clk_i              (clk_i), 
-    .arst_n_i           (rst_n), 
+    .clk_i              (clk_i ), 
+    .arst_n_i           (rst_n ), 
 
     .avms_address_i     (addres),
-    .avms_read_i        (read),
-    .avms_write_i       (write),
+    .avms_read_i        (read  ),
+    .avms_write_i       (write ),
     .avms_writedata_i   (data_i),
-    .ready              (ready),
     .avms_readdata_o    (),
 
     .uart_txd_o         ()
