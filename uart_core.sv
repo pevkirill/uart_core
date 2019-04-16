@@ -24,50 +24,7 @@ module uart_core #(
 );
 
 logic [7:0] txdata;
-logic [7:0] busy;
-logic [7:0] data_i;
 logic valid;
-logic ready;
-logic enable;
-
-always_ff @(posedge clk_i or negedge arst_n_i) begin : proc_busy
-    if(~arst_n_i) begin
-        busy[0] = '0;
-        busy[1] = '0;
-        busy[2] = '0;
-        busy[3] = '0;
-        busy[4] = '0;
-        busy[5] = '0;
-        busy[6] = '0;
-        busy[7] = '0;
-    end else if (avms_address_i == 4'h1 || avms_address_i == 4'h2 || avms_address_i == 4'h3) begin 
-        busy <= 1'b1;
-    end else if (ready) begin
-        busy <= 1'b0;
-    end else begin 
-        busy <= 1'b1;
-    end
-end
-
-always_ff @(posedge clk_i or negedge arst_n_i) begin : proc_uart_data
-    if(~arst_n_i) begin
-        txdata <= '0;
-    end else if (busy == 8'h0) begin
-        txdata <= data_i;
-    end else begin
-        txdata <= txdata;
-    end
-end
-
-always_ff @(posedge clk_i or negedge arst_n_i) begin : proc_enable
-    if(~arst_n_i) begin
-        enable <= 0;
-    end else if (busy == 8'h0 && avms_write_i) begin
-        enable <= 1'b1;
-    end else begin 
-        enable <= 1'b0;
-    end
-end
 
 slave_mm                       slave_mm_inst
 (        
@@ -76,10 +33,11 @@ slave_mm                       slave_mm_inst
     .avs_address_i             (avms_address_i   ),
     .avs_read_i                (avms_read_i      ),
     .avs_write_i               (avms_write_i     ),
+    .ready                     (ready            ),
     .avs_writedata_i           (avms_writedata_i ),
     .avs_readdata_o            (avms_readdata_o  ),
     .valid                     (valid            ),
-    .data_o                    (data_i           )
+    .data_o                    (txdata           )
 );
 
 uart_txd #(.clock_frequency  (CLK_FREQ),
@@ -89,7 +47,7 @@ uart_txd #(.clock_frequency  (CLK_FREQ),
     .clk                       (clk_i            ),
     .rst_n                     (arst_n_i         ),
     .d                         (txdata           ),
-    .ena                       (enable           ),
+    .ena                       (valid            ),
     .txd                       (uart_txd_o       ),    
     .rts                       (ready            )
 );

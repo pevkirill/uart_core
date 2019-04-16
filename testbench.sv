@@ -3,10 +3,12 @@ module testbench;
 
  logic        clk_i;
  logic        rst_n;
- logic [3:0]  addres;
+ logic [3:0]  address;
  logic [7:0]  data_i;
  logic        write;
  logic        read;
+ logic [7:0]  busy;
+ logic        data_txd;
 
 parameter    xtal_CLK = 100_000_000,
 			     baud = 115_200;
@@ -25,32 +27,117 @@ initial begin
     write  = 1'b0;
     read   = 1'b0;
     data_i = 8'h0;
-$display("Running testbench. Testbench is works on frequency = ", xtal_CLK, " MHz");
+    busy   = '0;
+    address = 4'h0;
+$display("Running testbench. Testbench is works on frequency = ", xtal_CLK, " Hz");
 @(posedge clk_i);
-    rst_n = 1;
+    rst_n = 1'b1;
+forever #(1) begin
 @(posedge clk_i);
-    write  = 1'b1;
-    data_i = 8'h13;
-    addres = 4'h2;
 @(posedge clk_i);
-    write  = 1'b1;
-    data_i = 8'h63;
-    addres = 4'h0;///
 @(posedge clk_i);
-    write  = 1'b1;
-    data_i = 8'h93;
-    addres = 4'h2;
+    read = 1'b1;
+    address = 4'h1;
 @(posedge clk_i);
-    write  = 1'b1;
+    read = 1'b0;
+@(posedge clk_i)
+if (busy[0]==1'b1) begin 
+    write = 1'b1;
+    address = 4'h0;
     data_i = 8'h17;
-    addres = 4'h0;
 @(posedge clk_i);
-    write  = 1'b1;
-    data_i = 8'h97;
-    addres = 4'h2;
+    write = 1'b0;
+    address = 4'h1;
+    data_i = 8'h0;
+end
 @(posedge clk_i);
+@(posedge clk_i);
+@(posedge clk_i);
+    read = 1'b1;
+    address = 4'h1;
+@(posedge clk_i);
+    read = 1'b0;
+@(posedge clk_i)
+if (busy[0]==1'b1) begin 
+    write = 1'b1;
+    address = 4'h0;
+    data_i = 8'h99;
+@(posedge clk_i);
+    write = 1'b0;
+    address = 4'h1;
+    data_i = 8'h0;
+end
+@(posedge clk_i);
+@(posedge clk_i);
+@(posedge clk_i);
+    read = 1'b1;
+    address = 4'h1;
+@(posedge clk_i);
+    read = 1'b0;
+@(posedge clk_i)
+if (busy[0]==1'b1) begin 
+    write = 1'b1;
+    address = 4'h0;
+    data_i = 8'h87;
+@(posedge clk_i);
+    write = 1'b0;
+    address = 4'h1;
+    data_i = 8'h0;
+end
+@(posedge clk_i);
+@(posedge clk_i);
+@(posedge clk_i);
+    read = 1'b1;
+    address = 4'h1;
+@(posedge clk_i);
+    read = 1'b0;
+@(posedge clk_i)
+if (busy[0]==1'b1) begin 
+    write = 1'b1;
+    address = 4'h0;
+    data_i = 8'h37;
+@(posedge clk_i);
+    write = 1'b0;
+    address = 4'h1;
+    data_i = 8'h0;
+end
+@(posedge clk_i);
+@(posedge clk_i);
+@(posedge clk_i);
+    read = 1'b1;
+    address = 4'h1;
+@(posedge clk_i);
+    read = 1'b0;
+@(posedge clk_i)
+if (busy[0]==1'b1) begin 
+    write = 1'b1;
+    address = 4'h0;
+    data_i = 8'h57;
+@(posedge clk_i);
+    write = 1'b0;
+    address = 4'h1;
+    data_i = 8'h0;
+end
+@(posedge clk_i);
+@(posedge clk_i);
+@(posedge clk_i);
+    read = 1'b1;
+    address = 4'h1;
+@(posedge clk_i);
+    read = 1'b0;
+@(posedge clk_i)
+if (busy[0]==1'b1) begin 
+    write = 1'b1;
+    address = 4'h0;
+    data_i = 8'h47;
+@(posedge clk_i);
+    write = 1'b0;
+    address = 4'h1;
+    data_i = 8'h0;
+end
 
-   #500000 $display("stop testbench");
+end
+#500000 $display("stop testbench");///this kusok code don't work's
    $stop;
 end
 
@@ -61,13 +148,13 @@ uart_core #(.CLK_FREQ  (xtal_CLK),
     .clk_i              (clk_i ), 
     .arst_n_i           (rst_n ), 
 
-    .avms_address_i     (addres),
+    .avms_address_i     (address),
     .avms_read_i        (read  ),
     .avms_write_i       (write ),
     .avms_writedata_i   (data_i),
-    .avms_readdata_o    (),
+    .avms_readdata_o    (busy  ),
 
-    .uart_txd_o         ()
+    .uart_txd_o         (data_txd)
 );
 
 endmodule // testbench
