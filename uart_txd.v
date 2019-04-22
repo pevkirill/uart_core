@@ -1,8 +1,8 @@
 module uart_txd 
 #(
-	 parameter 	 clock_frequency = 100_000_000,
-	 parameter	 baud_rate = 115_200,
-	 localparam	 div = clock_frequency/baud_rate
+	 parameter 	 CLOCK_FREQUENCY = 100_000_000,
+	 parameter	 BAUD_RATE = 115_200,
+	 localparam	 DIV = CLOCK_FREQUENCY/BAUD_RATE
 )
 (
 input 		clk, 	
@@ -24,12 +24,12 @@ output 		rts
 begin
 	if (~rst_n) 						        shift_data <= 9'b1111_11111;
 	else if (ready && w_ena) 				shift_data <= {1'b0, d}; 
-	else if(count_baund == div)     shift_data <= {shift_data[7:0], 1'b1};	
+	else if(count_baund == DIV)     shift_data <= {shift_data[7:0], 1'b1};	
 end
 
  always @(posedge clk or negedge rst_n)
 begin
- 	if (~rst_n || count_baund == div)   count_baund <= 9'h0;
+ 	if (~rst_n || count_baund == DIV)   count_baund <= 9'h0;
  	else if (ready && w_ena) 			      count_baund <= 9'h0;
 	else          						          count_baund <= count_baund + 1'b1;
 end
@@ -45,7 +45,7 @@ end
  	if      (~rst_n) 						          count_bit <= 4'd10;
   	else if (ready && w_ena) 				    count_bit <= 4'd0;
   	else if (count_bit == 4'd10) 		  	count_bit <= count_bit;
-  	else if (count_baund == div) 		    count_bit <= count_bit + 1'b1;
+  	else if (count_baund == DIV) 		    count_bit <= count_bit + 1'b1;
   	else 									              count_bit <= count_bit;	
 end
 

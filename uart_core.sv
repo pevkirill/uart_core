@@ -40,8 +40,8 @@ slave_mm                       slave_mm_inst
     .data_o                    (txdata           )
 );
 
-uart_txd #(.clock_frequency  (CLK_FREQ),
-           .baud_rate        (BAUD_RATE))
+uart_txd #(.CLOCK_FREQUENCY  (CLK_FREQ),
+           .BAUD_RATE        (BAUD_RATE))
                               uart_txd_inst
 (
     .clk                       (clk_i            ),
