@@ -146,6 +146,11 @@ initial begin
     forever @(posedge clk_i) data_mem = memory[11];
 end
 
+logic [7:0] data_check;
+
+initial begin 
+    forever @(posedge write) data_check[0] = {data_i[7:0], data_txd};
+end
 
 uart_core #(.CLK_FREQ (XTAL_CLK),.BAUD_RATE(BAUD)) uart_core_inst
 (

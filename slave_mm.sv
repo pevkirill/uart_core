@@ -50,7 +50,7 @@ always @(posedge clk_i or negedge arst_n_i)
 		else if (avs_read_i) begin
 			case (avs_address_i)
 				4'h0 : avs_readdata_o  <= reg_slave_0;
-				4'h1 : avs_readdata_o  <= ready;
+				4'h1 : avs_readdata_o  <= {{7{1'b0}}, ready};
 				4'd2 : avs_readdata_o  <= reg_slave_2;
 				4'd3 : avs_readdata_o  <= reg_slave_3;
 
