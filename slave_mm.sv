@@ -8,15 +8,17 @@ module slave_mm (
 	input  logic [7:0] avs_writedata_i,
 	output logic [7:0] avs_readdata_o ,
 	output logic [7:0] data_o         ,
-	output logic       valid
+	output logic       valid          ,
+	input  logic [7:0] data_i		  
 );
 
-logic [7:0]  reg_slave_0;
-logic [7:0]  reg_slave_1;
-logic [7:0]  reg_slave_2;
-logic [7:0]  reg_slave_3;
+logic [7:0] reg_slave_0;
+logic [7:0] reg_slave_1;
+logic [7:0] reg_slave_2;
+logic [7:0] reg_slave_3;
 
-assign valid = (avs_address_i == 4'h0 && avs_write_i && ready) ? 1'b1 : 1'b0;
+
+assign valid  = (avs_address_i == 4'h0 && avs_write_i && ready) ? 1'b1 : 1'b0;
 assign data_o = avs_writedata_i;
 
 always @(posedge clk_i or negedge arst_n_i)
@@ -29,8 +31,8 @@ always @(posedge clk_i or negedge arst_n_i)
 		end
 		else if (avs_write_i) begin
 			case (avs_address_i)
-				4'h0 : reg_slave_0   <= avs_writedata_i;
-				4'h1 : reg_slave_1   <= avs_writedata_i;
+				4'd0 : reg_slave_0   <= avs_writedata_i;
+				4'd1 : reg_slave_1   <= avs_writedata_i;
 				4'd2 : reg_slave_2   <= avs_writedata_i;
 				4'd3 : reg_slave_3   <= avs_writedata_i;
 
@@ -49,9 +51,9 @@ always @(posedge clk_i or negedge arst_n_i)
 		if (~arst_n_i) avs_readdata_o <= '0;
 		else if (avs_read_i) begin
 			case (avs_address_i)
-				4'h0 : avs_readdata_o  <= reg_slave_0;
-				4'h1 : avs_readdata_o  <= {{7{1'b0}}, ready};
-				4'd2 : avs_readdata_o  <= reg_slave_2;
+				4'd0 : avs_readdata_o  <= reg_slave_0;
+				4'd1 : avs_readdata_o  <= {{7{1'b0}}, ready};
+				4'd2 : avs_readdata_o  <= data_i;
 				4'd3 : avs_readdata_o  <= reg_slave_3;
 
 				default : begin
