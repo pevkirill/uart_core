@@ -56,11 +56,11 @@ initial begin
                 data_rxd=1'b0;
                 repeat (1*DIV) @(posedge clk_i);
                 data_rxd=1'b1;  //stop bit
-                repeat (1*DIV) @(posedge clk_i);
                 read = '1;
                 address = 4'd2;
                 @(posedge clk_i);
                 read = '0;
+                repeat (1*DIV) @(posedge clk_i);
             end else begin 
                 data_rxd=1'b0; //start bit
                 repeat (1*DIV) @(posedge clk_i);
@@ -81,6 +81,10 @@ initial begin
                 data_rxd=1'b0;
                 repeat (1*DIV) @(posedge clk_i);
                 data_rxd=1'b1;  //stop bit
+                read = '1;
+                address = 4'd2;
+                @(posedge clk_i);
+                read = '0;
                 repeat (1*DIV) @(posedge clk_i);
                 read = '1;
                 address = 4'd2;
