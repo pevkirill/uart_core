@@ -16,7 +16,6 @@ logic [7:0] memory  [SIZE_MEMORY];
 
 logic interrupt;
 logic [7:0] check_uart;///
-logic [7:0] data_wRxD; ///
 
 parameter    XTAL_CLK = 100_000_000,
     BAUD = 115_200;
@@ -33,14 +32,63 @@ initial begin
     forever #(HALFPERIOD) clk_i=~clk_i;
 end
 
-logic new_data;
-
 initial begin
-    new_data = '0;
-    repeat (DIV*10-100) @(posedge clk_i);
-    new_data = '1;
-    repeat (DIV*9-100) @(posedge clk_i);
-    new_data = 'z;
+    for (int g = 1; g < 3; g++) begin
+        repeat (g*11*DIV) @(posedge clk_i);
+        for (int el = 0; el < 2; el++) begin
+            if(el == 1) begin
+                data_rxd=1'b0; //start bit
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b0; //packet data 'h6e
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b0;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b0;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;  //stop bit
+                repeat (1*DIV) @(posedge clk_i);
+                read = '1;
+                address = 4'd2;
+                @(posedge clk_i);
+                read = '0;
+            end else begin 
+                data_rxd=1'b0; //start bit
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1; //packet data 'h
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b0;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b0;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b0;
+                repeat (1*DIV) @(posedge clk_i);
+                data_rxd=1'b1;  //stop bit
+                repeat (1*DIV) @(posedge clk_i);
+                read = '1;
+                address = 4'd2;
+                @(posedge clk_i);
+                read = '0;
+            end
+        end
+    end
 end
 
 initial begin
@@ -52,7 +100,6 @@ initial begin
     check_uart = '0;
     data_r = 0;
     data_rxd = '1;
-    data_wRxD = '0; ///
     memory = {8'h48, 8'h45, 8'h4c, 8'h89, 8'h4f, 8'h5f, 8'h57, 8'h66, 8'h52, 8'h99, 8'h44, 8'h21};
     $display("Running testbench. Testbench is works on frequency = ", XTAL_CLK, " Hz");
     @(posedge clk_i);
@@ -60,70 +107,13 @@ initial begin
     rst_n = 1'b1;
     @(posedge clk_i);
 
-/// input data
-   
+
 for (int i = 0; i < SIZE_MEMORY; i++) begin
-    if(new_data) begin
-        data_rxd=1'b0; //start bit
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b0; //packet data 'h6e
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b0;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b0;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;  //stop bit
-        repeat (1*DIV) @(posedge clk_i);
-        address = 4'd2;
-        read = '1;
-        UartData(ADDR_IRQ, data_wRxD);
-        $display(" UartData  ", data_wRxD);
-        @(posedge clk_i);
-        read = '0;
-        @(posedge clk_i);
-    end else if(~new_data) begin 
-        data_rxd=1'b0; //start bit
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b0; //packet data 'h37
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b0;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b0;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;
-        repeat (1*DIV) @(posedge clk_i);
-        data_rxd=1'b1;  //stop bit
-        repeat (1*DIV) @(posedge clk_i);
-        address = 4'd2;
-        read = '1;
-        UartData(ADDR_IRQ, data_wRxD);
-        $display(" UartData  ", data_wRxD);
-        @(posedge clk_i);
-        read = '0;
-        @(posedge clk_i);
-    end else begin 
+    if(~interrupt) begin
         do begin
-        ReadUart(STATUS_ADDR_REG, data_r);
-    end while(data_r[0] == 0);
-        WriteUart(TXDATA_ADDR_REG, memory[i]);
+            ReadUart(STATUS_ADDR_REG, data_r);
+        end while(data_r[0] == 0);
+            WriteUart(TXDATA_ADDR_REG, memory[i]);
     end
 end
 
@@ -131,23 +121,6 @@ end
     #(11*DIV*SIZE_MEMORY) $display("stop testbench");
     $stop;
 end
-
-
-task UartData;
-    input [3:0] add;
-    output [7:0] data_wRxD;
-
-    begin 
-        @(posedge clk_i);
-        @(posedge clk_i);
-        read = '1;
-        address = add;
-        data_wRxD = data_o;
-        @(posedge clk_i);
-        read = '0;
-    end
-
-endtask : UartData
 
 
 task ReadUart;
@@ -170,7 +143,7 @@ endtask : ReadUart
 
 task WriteUart;
     input [3:0] addr_w;
-    input [7:0] data;
+    input [7:0] data_w;
 
     begin
         @(posedge clk_i);
@@ -178,7 +151,7 @@ task WriteUart;
         @(posedge clk_i);
         write = 1'b1;
         address = addr_w;
-        data_i = data;
+        data_i = data_w;
         @(posedge clk_i);
         write = 1'b0;
         data_i = 8'h0;
