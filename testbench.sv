@@ -86,10 +86,6 @@ initial begin
                 @(posedge clk_i);
                 read = '0;
                 repeat (1*DIV) @(posedge clk_i);
-                read = '1;
-                address = 4'd2;
-                @(posedge clk_i);
-                read = '0;
             end
         end
     end
