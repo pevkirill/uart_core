@@ -37,7 +37,7 @@ assign valid = (avms_write_i && avms_address_i == 4'd0 && ready) ? 1'b1 : 1'b0;
 always_ff @(posedge clk_i or negedge arst_n_i) begin : proc_IRQ_event
     if(~arst_n_i) begin
         IRQ_event <= '0;
-    end else if (~enable) begin
+    end else if (enable) begin
         IRQ_event <= '1;
     end else begin 
         IRQ_event <= '0;
@@ -46,50 +46,42 @@ end
 
 always_ff @(posedge clk_i or negedge arst_n_i) begin : proc_data_TxD
     if(~arst_n_i) begin
-        data_TxD <= 0;
+        data_TxD <= '0;
     end else if(avms_write_i && avms_address_i == 4'd0) begin
         data_TxD <= avms_writedata_i;
     end
 end
 
 always @(posedge clk_i or negedge arst_n_i)
-    begin
-        if (~arst_n_i) avms_readdata_o <= '0;
-        else if (avms_read_i) begin
-            case (avms_address_i)
-                4'd0 : avms_readdata_o  <= data_TxD;
-                4'd1 : avms_readdata_o  <= {{7{1'b0}}, ready};
-                4'd2 : avms_readdata_o  <= rxdata;
-
-                default : begin
-                    avms_readdata_o <= avms_readdata_o;
-                end
-            endcase
-        end
-    end
+        case (avms_address_i)
+            4'd0    : avms_readdata_o  <= data_TxD;
+            4'd1    : avms_readdata_o  <= {{7{1'b0}}, ready};
+            4'd2    : avms_readdata_o  <= rxdata;
+            default : avms_readdata_o  <= avms_readdata_o;
+        endcase
 
 
 uart_txd #(.CLOCK_FREQUENCY  (CLK_FREQ ),
            .BAUD_RATE        (BAUD_RATE))
                               uart_txd_inst
 (
-    .clk                       (clk_i              ),
-    .rst_n                     (arst_n_i           ),
-    .d                         (data_TxD           ),
-    .ena                       (valid              ),
-    .txd                       (uart_txd_o         ),
-    .ready                     (ready              )
+    .clk                      (clk_i       ),
+    .rst_n                    (arst_n_i    ),
+    .d                        (data_TxD    ),
+    .ena                      (valid       ),
+    .txd                      (uart_txd_o  ),
+    .ready                    (ready       )
 );
 
 uart_rxd #(.CLOCK_FREQUENCY  (CLK_FREQ ),
            .BAUD_RATE        (BAUD_RATE))
                               uart_rxd_inst
 (
-    .clk          (clk_i      ),
-    .rst_n        (arst_n_i   ),
-    .rxd          (uart_rxd_i ),
-    .ena_rxd      (enable     ),
-    .data_o       (rxdata     )
+    .clk                      (clk_i      ),
+    .rst_n                    (arst_n_i   ),
+    .rxd                      (uart_rxd_i ),
+    .ena_rxd                  (enable     ),
+    .data_o                   (rxdata     )
 );
 
 endmodule

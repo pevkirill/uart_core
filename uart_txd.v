@@ -34,8 +34,8 @@ module uart_txd #(
 
   always @(posedge clk or negedge rst_n)
     begin
-      if (~rst_n)     shift_ena <= 1'b0;
-      else      shift_ena <= ena;
+      if (~rst_n)   shift_ena <= 1'b0;
+      else          shift_ena <= ena;
     end
 
   always @(posedge clk or negedge rst_n)
@@ -57,7 +57,7 @@ module uart_txd #(
 
 
   assign ready   = ready_reg;
-  assign w_ena = (~shift_ena && ena) ? 1'b1 : 1'b0;
+  assign w_ena = (shift_ena && ~ena) ? 1'b1 : 1'b0;
   assign txd   = shift_data[8];
 
 endmodule 

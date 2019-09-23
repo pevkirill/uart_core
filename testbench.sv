@@ -1,8 +1,8 @@
 `timescale 1ns/1ns
 module testbench;
 
-logic       clk_i         ;
-logic       rst_n         ;
+bit       clk_i         ;
+bit       rst_n         ;
 logic [3:0] address       ;
 logic [7:0] data_i        ;
 logic       write         ;
@@ -15,7 +15,7 @@ localparam SIZE_MEMORY = 12 ;
 logic [7:0] memory  [SIZE_MEMORY];
 
 logic interrupt;
-logic [7:0] check_uart;///
+logic [0:7] check_uart;///
 
 parameter    XTAL_CLK = 100_000_000,
     BAUD = 115_200;
@@ -30,65 +30,6 @@ localparam ADDR_IRQ        = 4'h2                    ;
 initial begin
     clk_i = 1'b0;
     forever #(HALFPERIOD) clk_i=~clk_i;
-end
-
-initial begin
-    for (int g = 1; g < 3; g++) begin
-        repeat (g*11*DIV) @(posedge clk_i);
-        for (int el = 0; el < 2; el++) begin
-            if(el == 1) begin
-                data_rxd=1'b0; //start bit
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b0; //packet data 'h6e
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b0;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b0;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;  //stop bit
-                read = '1;
-                address = 4'd2;
-                @(posedge clk_i);
-                read = '0;
-                repeat (1*DIV) @(posedge clk_i);
-            end else begin 
-                data_rxd=1'b0; //start bit
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1; //packet data 'h
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b0;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b0;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b0;
-                repeat (1*DIV) @(posedge clk_i);
-                data_rxd=1'b1;  //stop bit
-                read = '1;
-                address = 4'd2;
-                @(posedge clk_i);
-                read = '0;
-                repeat (1*DIV) @(posedge clk_i);
-            end
-        end
-    end
 end
 
 initial begin
@@ -107,20 +48,51 @@ initial begin
     rst_n = 1'b1;
     @(posedge clk_i);
 
+    fork
+        begin : first_process //RxD
+            for (int g = 10; g < 20; g++) begin
+                Data_RxD(g);
+                #(9*DIV);
+            end
+        end
+        begin : second_process //TxD
+            for (int i = 0; i < SIZE_MEMORY + 1; i++) begin
+                if(~interrupt) begin
+                    do begin
+                        ReadUart(STATUS_ADDR_REG, data_r);
+                    end while(data_r[0] == 0 || address == 4'd2);
+                        WriteUart(TXDATA_ADDR_REG, memory[i]);
+                end
+            end
+        end
+        begin : third_process // Check txd data
+            while(~data_r[0]) begin 
+                Check_Uart();
+            end
+        end
+    join
 
-for (int i = 0; i < SIZE_MEMORY; i++) begin
-    if(~interrupt) begin
-        do begin
-            ReadUart(STATUS_ADDR_REG, data_r);
-        end while(data_r[0] == 0);
-            WriteUart(TXDATA_ADDR_REG, memory[i]);
-    end
-end
 
-
-    #(11*DIV*SIZE_MEMORY) $display("stop testbench");
+    #(12*DIV*SIZE_MEMORY) $display("stop testbench");
     $stop;
 end
+
+
+task Data_RxD;
+    input [0:7] data_to_send;
+    begin
+        data_rxd=1'b0; //start bit
+        repeat (1*DIV) @(posedge clk_i);
+        for (int i = 0; i < 8; i++) begin
+            data_rxd = data_to_send[i]; //packet data
+            repeat (1*DIV) @(posedge clk_i);
+        end
+        data_rxd=1'b1;  //stop bit
+        repeat (1*DIV) @(posedge clk_i);
+        address = 4'd2;
+    end
+
+endtask : Data_RxD
 
 
 task ReadUart;
@@ -160,34 +132,22 @@ task WriteUart;
 endtask : WriteUart
 
 
-initial begin
-    forever begin
-        @(data_r[0]);
-        @(posedge clk_i);
-        repeat (DIV+31) @(posedge clk_i);
-        check_uart[7] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[6] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[5] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[4] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[3] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[2] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[1] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        check_uart[0] = data_txd;
-        repeat (DIV+3) @(posedge clk_i);
-        for (int j = 0; j < SIZE_MEMORY; j++) begin
-            if(check_uart == memory[j]) begin
-                $display("uart data is correct %h", check_uart);
-            end 
+task Check_Uart;
+
+    begin 
+        repeat(DIV+31) @(posedge clk_i);
+        for (int q = 0; q < 8; q++) begin
+            check_uart[q] = data_txd;
+            repeat(DIV+3) @(posedge clk_i);
         end
+        repeat(DIV+3) @(posedge clk_i);
+        $display("data %h", check_uart);
+        @(posedge clk_i);
+        check_uart = '0;
     end
-end
+
+endtask : Check_Uart
+
 
 uart_core #(.CLK_FREQ(XTAL_CLK), .BAUD_RATE(BAUD)) uart_core_inst (
     .clk_i           (clk_i    ),
