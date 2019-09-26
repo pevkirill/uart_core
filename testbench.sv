@@ -88,7 +88,7 @@ end
 
 
 task wait_clocks(int i );
-    repeat (i) @(posedge clk_i);// #1;
+    repeat (i) @(posedge clk_i) #1;
 endtask : wait_clocks
 
 

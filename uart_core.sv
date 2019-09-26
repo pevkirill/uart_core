@@ -42,7 +42,6 @@ logic [                  3:0]   cnt_bit   ;
 logic                           busy      ;
 
 logic [7:0] avms_readdata;
-logic [7:0] data;
 
 assign valid = (avms_write_i && avms_address_i == 4'd0 && ready) ? 1'b1 : 1'b0;
 
