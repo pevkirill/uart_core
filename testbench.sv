@@ -15,7 +15,8 @@ localparam SIZE_MEMORY = 12 ;
 logic [7:0] memory  [SIZE_MEMORY];
 
 logic interrupt;
-logic [0:7] check_uart;///
+logic [0:7] check_uart;
+bit avms_byteenable_i;
 
 parameter    XTAL_CLK = 100_000_000,
     BAUD = 115_200;
@@ -49,24 +50,25 @@ initial begin
     @(posedge clk_i);
 
     fork
-        begin : first_process //RxD
+        begin : first_process // RxD
             for (int g = 10; g < 20; g++) begin
-                Data_RxD(g);
-                #(9*DIV);
-            end
-        end
-        begin : second_process //TxD
-            for (int i = 0; i < SIZE_MEMORY + 1; i++) begin
-                if(~interrupt) begin
-                    do begin
-                        ReadUart(STATUS_ADDR_REG, data_r);
-                    end while(data_r[0] == 0 || address == 4'd2);
-                        WriteUart(TXDATA_ADDR_REG, memory[i]);
+                if(~data_r[1]) begin
+                    Data_RxD(g,g);
+                    #(9*DIV);
                 end
             end
         end
+        begin : second_process // TxD
+            for (int i = 0; i < SIZE_MEMORY; i++) begin
+                do begin
+                    //IRQ();
+                    ReadUart(STATUS_ADDR_REG, data_r);
+                end while(~data_r[0]);
+                    WriteUart(TXDATA_ADDR_REG, memory[i], 1'b1);
+            end
+        end
         begin : third_process // Check txd data
-            while(~data_r[0]) begin 
+            while(~data_r[0]) begin
                 Check_Uart();
             end
         end
@@ -76,39 +78,72 @@ initial begin
     #(12*DIV*SIZE_MEMORY) $display("stop testbench");
     $stop;
 end
+/*------------------------------------------------------------------------------
+--  data is not correct
+------------------------------------------------------------------------------*/
+initial begin 
+    #316939;
+    Data_RxD(8'h7f, 8'hd);
+end
+
+
+task wait_clocks(int i );
+    repeat (i) @(posedge clk_i);// #1;
+endtask : wait_clocks
 
 
 task Data_RxD;
-    input [0:7] data_to_send;
+    input bit [0:7] data_to_send;
+    input bit [7:0] check;
     begin
         data_rxd=1'b0; //start bit
-        repeat (1*DIV) @(posedge clk_i);
+        repeat (DIV) @(posedge clk_i);
         for (int i = 0; i < 8; i++) begin
             data_rxd = data_to_send[i]; //packet data
-            repeat (1*DIV) @(posedge clk_i);
+            repeat (DIV) @(posedge clk_i);
         end
         data_rxd=1'b1;  //stop bit
-        repeat (1*DIV) @(posedge clk_i);
+        repeat (DIV/2) @(posedge clk_i);
         address = 4'd2;
+        $display("interrupt");
+        wait_clocks(1);
+        address = 4'd1;
+        repeat (DIV/2) @(posedge clk_i);
+        if(check == data_to_send) begin
+            $display("data is correct ", check);
+        end else $display("!!! data isn't correct. uart RxD over !!! ", data_to_send);
+
     end
 
 endtask : Data_RxD
 
+/*
+task IRQ;
+    begin 
+        if(interrupt) begin
+            address = 4'd2;
+            $display("interrupt"); 
+            wait_clocks(1);
+            address = 4'd1;
+        end
+    end
+
+endtask : IRQ
+*/
 
 task ReadUart;
     input [3:0] addr_r;
     output [7:0] data_r;
 
     begin
-        @(posedge clk_i);
-        @(posedge clk_i);
-        @(posedge clk_i);
+        wait_clocks(3);
         read = 1'b1;
         address = addr_r;
-        @(posedge clk_i);
-        #1;
+        wait_clocks(1);
         data_r = data_o;
         read = 1'b0;
+        #1;
+
     end
 endtask : ReadUart
 
@@ -116,15 +151,15 @@ endtask : ReadUart
 task WriteUart;
     input [3:0] addr_w;
     input [7:0] data_w;
+    input bit byteenable;
 
     begin
-        @(posedge clk_i);
-        @(posedge clk_i);
-        @(posedge clk_i);
+        wait_clocks(3);
         write = 1'b1;
         address = addr_w;
         data_i = data_w;
-        @(posedge clk_i);
+        avms_byteenable_i = byteenable;
+        wait_clocks(1);
         write = 1'b0;
         data_i = 8'h0;
     end
@@ -150,19 +185,20 @@ endtask : Check_Uart
 
 
 uart_core #(.CLK_FREQ(XTAL_CLK), .BAUD_RATE(BAUD)) uart_core_inst (
-    .clk_i           (clk_i    ),
-    .arst_n_i        (rst_n    ),
+    .clk_i            (clk_i            ),
+    .arst_n_i         (rst_n            ),
     
-    .avms_address_i  (address  ),
-    .avms_read_i     (read     ),
-    .avms_write_i    (write    ),
-    .avms_writedata_i(data_i   ),
-    .avms_readdata_o (data_o   ),
+    .avms_address_i   (address          ),
+    .avms_byteenable_i(avms_byteenable_i),
+    .avms_read_i      (read             ),
+    .avms_write_i     (write            ),
+    .avms_writedata_i (data_i           ),
+    .avms_readdata_o  (data_o           ),
     
-    .uart_txd_o      (data_txd ),
-    .uart_rxd_i      (data_rxd ),
-
-    .IRQ_event       (interrupt)
+    .uart_txd_o       (data_txd         ),
+    .uart_rxd_i       (data_rxd         ),
+    
+    .IRQ_event        (interrupt        )
 );
 
 endmodule // testbench
