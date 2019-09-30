@@ -1,22 +1,22 @@
 `timescale 1ns/1ns
 module testbench;
 
-bit       clk_i         ;
-bit       rst_n         ;
-logic [3:0] address       ;
-logic [7:0] data_i        ;
-logic       write         ;
-logic       read          ;
-logic       data_txd      ;
-logic       data_rxd      ;
-logic [7:0] data_o        ;
-logic [7:0] data_r        ;
-localparam SIZE_MEMORY = 12 ;
-logic [7:0] memory  [SIZE_MEMORY];
+bit          clk_i                        ;
+bit          rst_n                        ;
+logic [ 3:0] address                      ;
+logic [31:0] data_i                       ;
+logic        write                        ;
+logic        read                         ;
+logic        data_txd                     ;
+logic        data_rxd                     ;
+logic [31:0] data_o                       ;
+logic [31:0] data_r                       ;
+localparam   SIZE_MEMORY              = 12;
+logic [ 7:0] memory     [SIZE_MEMORY]     ;
 
-logic interrupt;
-logic [0:7] check_uart;
-bit avms_byteenable_i;
+logic       interrupt        ;
+logic [0:7] check_uart       ;
+bit   [3:0] avms_byteenable_i;
 
 parameter    XTAL_CLK = 100_000_000,
     BAUD = 115_200;
@@ -61,10 +61,9 @@ initial begin
         begin : second_process // TxD
             for (int i = 0; i < SIZE_MEMORY; i++) begin
                 do begin
-                    //IRQ();
                     ReadUart(STATUS_ADDR_REG, data_r);
-                end while(~data_r[0]);
-                    WriteUart(TXDATA_ADDR_REG, memory[i], 1'b1);
+                end while(~data_r[0] || interrupt);
+                WriteUart(TXDATA_ADDR_REG, {24'd0, memory[i]});
             end
         end
         begin : third_process // Check txd data
@@ -78,19 +77,10 @@ initial begin
     #(12*DIV*SIZE_MEMORY) $display("stop testbench");
     $stop;
 end
-/*------------------------------------------------------------------------------
---  data is not correct
-------------------------------------------------------------------------------*/
-initial begin 
-    #316939;
-    Data_RxD(8'h7f, 8'hd);
-end
-
 
 task wait_clocks(int i );
     repeat (i) @(posedge clk_i) #1;
 endtask : wait_clocks
-
 
 task Data_RxD;
     input bit [0:7] data_to_send;
@@ -105,8 +95,10 @@ task Data_RxD;
         data_rxd=1'b1;  //stop bit
         repeat (DIV/2) @(posedge clk_i);
         address = 4'd2;
+        avms_byteenable_i = 4'h1;
         $display("interrupt");
         wait_clocks(1);
+        avms_byteenable_i = 4'd0;
         address = 4'd1;
         repeat (DIV/2) @(posedge clk_i);
         if(check == data_to_send) begin
@@ -117,65 +109,51 @@ task Data_RxD;
 
 endtask : Data_RxD
 
-/*
-task IRQ;
-    begin 
-        if(interrupt) begin
-            address = 4'd2;
-            $display("interrupt"); 
-            wait_clocks(1);
-            address = 4'd1;
-        end
-    end
-
-endtask : IRQ
-*/
-
 task ReadUart;
     input [3:0] addr_r;
-    output [7:0] data_r;
+    output [31:0] data_r;
 
     begin
         wait_clocks(3);
         read = 1'b1;
         address = addr_r;
+        avms_byteenable_i = 4'd1;
         wait_clocks(1);
         data_r = data_o;
         read = 1'b0;
+        //avms_byteenable_i = '0;
         #1;
 
     end
 endtask : ReadUart
 
-
 task WriteUart;
     input [3:0] addr_w;
-    input [7:0] data_w;
-    input bit byteenable;
+    input [31:0] data_w;
 
     begin
         wait_clocks(3);
         write = 1'b1;
         address = addr_w;
         data_i = data_w;
-        avms_byteenable_i = byteenable;
+        //avms_byteenable_i = 4'd1;
         wait_clocks(1);
         write = 1'b0;
         data_i = 8'h0;
+        //avms_byteenable_i = '0;
     end
 
 endtask : WriteUart
 
-
 task Check_Uart;
 
     begin 
-        repeat(DIV+31) @(posedge clk_i);
+        repeat(DIV) @(posedge clk_i);
         for (int q = 0; q < 8; q++) begin
             check_uart[q] = data_txd;
-            repeat(DIV+3) @(posedge clk_i);
+            repeat(DIV) @(posedge clk_i);
         end
-        repeat(DIV+3) @(posedge clk_i);
+        repeat(DIV) @(posedge clk_i);
         $display("data %h", check_uart);
         @(posedge clk_i);
         check_uart = '0;

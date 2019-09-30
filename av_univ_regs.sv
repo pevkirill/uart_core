@@ -66,7 +66,7 @@ module av_univ_regs #(
                 end else begin
                     word_valid_wr_o[ind_word] <= 1'b0;
                 end
-                if( avms_read && (|avms_byteenable) && avms_address == ind_word) begin
+                if(/* avms_read && */(|avms_byteenable) && avms_address == ind_word) begin
                     word_valid_rd_o[ind_word] <= 1'b1;
                 end else begin
                     word_valid_rd_o[ind_word] <= 1'b0;
